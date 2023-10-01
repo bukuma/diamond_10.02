@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <!-- プロパティ名＋文字コード-->
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <!-- cdn読み込み  ３種類の外部のスクリプト-->
+    <script src="https://code.jquery.com/jquery-3.3.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/draw2d@1.0.38/dist/draw2d.js"></script>
+    <!-- MIMEタイプ/サブタイプ 拡張子-->
+    <script type="text/javascript">
+        //canvas変数に文字列は入っていない≒値が存在しない←変数の初期化で使用
+        let canvas = null;
+        //DOMContentLoaded：HTML ページの読み込みが完了し HTML のパース(解析)が完了して DOM ツリーの構築が完了した時点で発生するイベント
+        //addEventListener メソッドの引数として DOMContentLoaded を指定してイベントリスナーを登録してのみ利用できる
+        document.addEventListener("DOMContentLoaded", function () {
+            //div(bodyに存在）のid="canvas_id"にdraw2d.Canvasが生成される
+            //new演算子:インスタンス(オブジェクトのコピー)を作成する
+            canvas = new draw2d.Canvas("canvas_id");
+
+            //ドラッグ&ドロップで connectionを作成できるようにする
+            //.installEditPolicy()でcanvasに対して様々な設定を付与
+            //DragConnectionCreatePolicy:ドラッグ&ドロップでConnectionを生成できる
+            canvas.installEditPolicy(new draw2d.policy.connection.DragConnectionCreatePolicy({
+                //{}内を実装するための新しいインスタンスを返す
+                createConnection: function () {
+                    //draw2d.Connectionクラスのインスタンスを生成して、戻す
+                    return new draw2d.Connection({
+                        //connectionの形状の設定（設定をしない場合、デフォルトの場合で直線のconnection)
+                        router: new draw2d.layout.connection.InteractiveManhattanConnectionRouter()
+                    })
+                }
+            }));
+        });
+
+        //function　関数名()：様々な処理を1つにまとめて、名前をつけることができる
+        function canvas_redo() {
+            //canvas_redoの処理内容
+            //canvasからgetCommandStack(≒連続処理)指示を受け取ったら、redoイベント（＝元に戻す）を実行
+            canvas.getCommandStack().redo();
+        }
+        function canvas_undo() {
+            //canvas_undoの処理内容
+            //canvasからgetCommandStack(≒連続処理)指示を受け取ったら、undoイベント（＝やり直し）を実行
+            canvas.getCommandStack().undo();
+        }
+        function figure_delete() {
+            //figure_deleteの処理内容
+            //figure:描写領域内のオブジェクト
+            //canvasからgetCommandStack(≒連続処理)指示を受け取ったら、execute() メソッド（＝実行する）を実行
+            canvas.getCommandStack().execute(
+                //execute() メソッドの内容
+                //canvas.getPrimarySelection()で選択中のオブジェクトを取得し、.execute(new ~.CommandDelete()でオブジェクトを削除
+                //PrimarySelection:現在の主要選択オブジェクトであるオブジェクト
+                new draw2d.command.CommandDelete(canvas.getPrimarySelection()));
+        }
+
+        function label_add() {
+        let LabelDiamond = draw2d.shape.basic.Diamond.extend({
+            init: function (attr) {
+                this._super(attr);
+
+                this.label = new draw2d.shape.basic.Label({ text: "ここをクリック", color: "#0d0d0d", fontColor: "#0d0d0d" });
+                this.add(this.label, new draw2d.layout.locator.CenterLocator(this));
+
+                this.label.installEditor(new draw2d.ui.LabelInplaceEditor());
+
+                // 上部ポートを作成
+                let topPort = this.createPort("output", new draw2d.layout.locator.TopLocator(this));
+                topPort.setBackgroundColor("#0000FF"); // ポートの背景色を設定
+
+                // 下部ポートを作成
+                let bottomPort = this.createPort("output", new draw2d.layout.locator.BottomLocator(this));
+                bottomPort.setBackgroundColor("#0000FF"); // ポートの背景色を設定
+
+                // 左部ポートを作成
+                let leftPort = this.createPort("output", new draw2d.layout.locator.LeftLocator(this));
+                leftPort.setBackgroundColor("#0000FF"); // ポートの背景色を設定
+
+                // 右部ポートを作成
+                let rightPort = this.createPort("output", new draw2d.layout.locator.RightLocator(this));
+                rightPort.setBackgroundColor("#0000ff"); // ポートの背景色を設定
+            }
+        });
+
+        let labelDiamond = new LabelDiamond({
+            width: 80, // 幅を指定
+            height: 80, // 高さを指定
+        });
+
+        canvas.getCommandStack().execute(new draw2d.command.CommandAdd(canvas, labelDiamond, 10, 10));
+
+        // コネクションを作成し、ポートを接続
+        let connection1 = new draw2d.Connection({
+            source: topPort,    // 上部ポートをソースに設定
+            target: bottomPort, // 下部ポートをターゲットに設定
+            router: new draw2d.layout.connection.InteractiveManhattanConnectionRouter()
+        });
+        canvas.add(connection1);
+
+        let connection2 = new draw2d.Connection({
+            source: rightPort,   // 右部ポートをソースに設定
+            target: leftPort,  // 左部ポートをターゲットに設定
+            router: new draw2d.layout.connection.InteractiveManhattanConnectionRouter()
+        });
+        canvas.add(connection2);
+
+        let connection3 = new draw2d.Connection({
+            source: leftPort,   // 左部ポートをソースに設定
+            target: rightPort,  // 右部ポートをターゲットに設定
+            router: new draw2d.layout.connection.InteractiveManhattanConnectionRouter()
+        });
+        canvas.add(connection3);
+
+        let connection4 = new draw2d.Connection({
+            source: bottomPort,   // 下部ポートをソースに設定
+            target: topPort,  // 上部ポートをターゲットに設定
+            router: new draw2d.layout.connection.InteractiveManhattanConnectionRouter()
+        });
+        canvas.add(connection4);
+        }
+
+        function addComment() {
+            // addCommentの処理内容=ユーザーにコメントを入力してもらうためにプロンプトを表示
+            let commentText = prompt("コメントを入力:");
+            //prompt：ダイアルボックスを開く→コメントを打ち込めるようになる
+            if (commentText !== null) {
+                // コメントが入力された場合の動作→コメントを追加
+                let comment = new draw2d.shape.basic.Label({ text: commentText });
+                //コメント付きのラベルが生成される
+                comment.createPort("input");
+                comment.createPort("output");
+                canvas.getCommandStack().execute(new draw2d.command.CommandAdd(canvas, comment, 200, 200));
+                //キャンバスに要素（コメントの付いたラベル）が追加される
+            }
+        }
+    
+    </script>
+</head>
+
+<body id="container">
+    <div style="margin: 10px;">
+        <input type="button" value="undo" onclick="canvas_undo()">
+        <input type="button" value="redo" onclick="canvas_redo()">
+        <input type="button" value="delete" onclick="figure_delete()">
+        <input type="button" value="label_add" onclick="label_add()">
+        <input type="button" value="comment_add" onclick="addComment()">
+        <!--value:ボタンに表示されるテキスト onclick:クリックした際に起動する処理を指定-->
+    </div>
+    <!--javascriptを使う時はidタグの方が処理が早い＋横並び可能-->
+    <div id="canvas_id" style="width:3000px; height:3000px;background-color: rgb(220, 220, 220);"></div>
+</body>
+
+</html>
